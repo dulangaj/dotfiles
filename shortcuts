@@ -1,0 +1,33 @@
+#!/bin/bash
+
+## SHELL
+alias r="source ~/.zshrc"
+alias cl="clear"
+
+alias ll="ls -lart"
+alias Ls='l; | grep -i'
+
+## APPS
+
+alias S='open -a "Sublime Text"'
+
+## GIT
+
+alias gpo='git pull origin'
+
+alias gb='git --no-pager branch'
+alias gdn='git --no-pager diff --relative --name-only'
+
+
+squash() {
+  local num_commits=$1
+  local msg=$2
+
+  # Check for both arguments
+  if [ -z "$num_commits" ] || [ -z "$msg" ]; then
+    echo "Usage: gsq <number_of_commits> 'your message'"
+    return 1
+  fi
+
+  git reset --soft HEAD~"$num_commits" && git commit -m "$msg"
+}
