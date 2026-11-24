@@ -18,10 +18,11 @@ struct HighlightCurve {
 
 /// Applies the curve on top of each display's ColorSync calibration.
 final class Dimmer {
-    var cap: Float { didSet { apply() } }
+    var cap: Float { didSet { scheduleApply() } }
     var isOn: Bool { didSet { isOn ? refresh() : restore() } }
     private var base: [CGDirectDisplayID: Table] = [:]
     private var expected: [CGDirectDisplayID: [Float]] = [:]
+    private var applyPending = false
 
     typealias Table = (r: [Float], g: [Float], b: [Float])
 
@@ -52,6 +53,17 @@ final class Dimmer {
         guard online.allSatisfy({ base[$0] != nil }) else { return refresh() }
         expected = [:]
         for display in online { apply(to: display) }
+    }
+
+    /// A fast drag sends ~150 ticks a second; WindowServer applies one table per frame,
+    /// so writing every tick backs it up and freezes the UI. Write at most once per 30 Hz frame.
+    private func scheduleApply() {
+        guard !applyPending else { return }
+        applyPending = true
+        RunLoop.main.add(Timer(timeInterval: 1.0 / 30, repeats: false) { [weak self] _ in
+            self?.applyPending = false
+            self?.apply()
+        }, forMode: .common)
     }
 
     /// Re-applies if wake, a display change or anything else replaced our table.
